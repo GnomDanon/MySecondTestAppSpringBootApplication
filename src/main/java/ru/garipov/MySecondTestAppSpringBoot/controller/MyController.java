@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.garipov.MySecondTestAppSpringBoot.exception.UnsupportedCodeException;
 import ru.garipov.MySecondTestAppSpringBoot.exception.ValidationFailedException;
 import ru.garipov.MySecondTestAppSpringBoot.model.*;
+import ru.garipov.MySecondTestAppSpringBoot.service.ModifyRequestService;
 import ru.garipov.MySecondTestAppSpringBoot.service.ModifyResponseService;
 import ru.garipov.MySecondTestAppSpringBoot.service.ValidationService;
 import ru.garipov.MySecondTestAppSpringBoot.util.DateTimeUtil;
@@ -25,16 +26,27 @@ public class MyController {
 
 	private final ValidationService validationService;
 	private final ModifyResponseService modifyResponseService;
+	private final ModifyRequestService modifySystemNameRequestService;
+	private final ModifyRequestService modifySourceRequestService;
+	private final ModifyRequestService modifySystemTimeRequestService;
 
 	@Autowired
 	public MyController(ValidationService validationService,
-						@Qualifier("ModifySystemTimeResponseService") ModifyResponseService modifyResponseService) {
+						@Qualifier("ModifySystemTimeResponseService") ModifyResponseService modifyResponseService,
+						@Qualifier("ModifySystemNameRequestService") ModifyRequestService modifySystemNameRequestService,
+						@Qualifier("ModifySourceRequestService") ModifyRequestService modifySourceRequestService,
+						@Qualifier("ModifySystemTimeRequestService") ModifyRequestService modifySystemTimeRequestService) {
 		this.validationService = validationService;
 		this.modifyResponseService = modifyResponseService;
+		this.modifySystemNameRequestService = modifySystemNameRequestService;
+		this.modifySourceRequestService = modifySourceRequestService;
+		this.modifySystemTimeRequestService = modifySystemTimeRequestService;
 	}
 
 	@PostMapping(value = "/feedback")
 	public ResponseEntity<Response> feedback(@Valid @RequestBody Request request, BindingResult bindingResult) {
+		modifySystemTimeRequestService.modify(request);
+
 		log.info("request: {}", request);
 
 		Response response = Response.builder()
@@ -75,6 +87,8 @@ public class MyController {
 		}
 
 		response = modifyResponseService.modify(response);
+		modifySourceRequestService.modify(request);
+		modifySystemNameRequestService.modify(request);
 		log.info("response (modified): {}", response);
 
 		return new ResponseEntity<>(response, HttpStatus.OK);
