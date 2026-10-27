@@ -9,7 +9,7 @@ import java.util.Date;
 
 @Service
 @Qualifier("ModifySystemTimeRequestService")
-public class ModifySystemTimeRequest implements ModifyRequestService {
+public class ModifySystemTimeRequestService implements ModifyRequestService {
 
 	@Override
 	public void modify(Request request) {

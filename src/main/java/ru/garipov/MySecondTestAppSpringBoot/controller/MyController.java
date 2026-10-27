@@ -1,9 +1,8 @@
 package ru.garipov.MySecondTestAppSpringBoot.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.garipov.MySecondTestAppSpringBoot.exception.UnsupportedCodeException;
 import ru.garipov.MySecondTestAppSpringBoot.exception.ValidationFailedException;
 import ru.garipov.MySecondTestAppSpringBoot.model.*;
+import ru.garipov.MySecondTestAppSpringBoot.service.AnnualBonusService;
 import ru.garipov.MySecondTestAppSpringBoot.service.ModifyRequestService;
 import ru.garipov.MySecondTestAppSpringBoot.service.ModifyResponseService;
 import ru.garipov.MySecondTestAppSpringBoot.service.ValidationService;
@@ -22,26 +22,15 @@ import java.util.Date;
 
 @Slf4j
 @RestController
+@RequiredArgsConstructor
 public class MyController {
 
 	private final ValidationService validationService;
-	private final ModifyResponseService modifyResponseService;
+	private final ModifyResponseService modifySystemTimeResponseService;
 	private final ModifyRequestService modifySystemNameRequestService;
 	private final ModifyRequestService modifySourceRequestService;
 	private final ModifyRequestService modifySystemTimeRequestService;
-
-	@Autowired
-	public MyController(ValidationService validationService,
-						@Qualifier("ModifySystemTimeResponseService") ModifyResponseService modifyResponseService,
-						@Qualifier("ModifySystemNameRequestService") ModifyRequestService modifySystemNameRequestService,
-						@Qualifier("ModifySourceRequestService") ModifyRequestService modifySourceRequestService,
-						@Qualifier("ModifySystemTimeRequestService") ModifyRequestService modifySystemTimeRequestService) {
-		this.validationService = validationService;
-		this.modifyResponseService = modifyResponseService;
-		this.modifySystemNameRequestService = modifySystemNameRequestService;
-		this.modifySourceRequestService = modifySourceRequestService;
-		this.modifySystemTimeRequestService = modifySystemTimeRequestService;
-	}
+	private final AnnualBonusService annualBonusService;
 
 	@PostMapping(value = "/feedback")
 	public ResponseEntity<Response> feedback(@Valid @RequestBody Request request, BindingResult bindingResult) {
@@ -53,6 +42,11 @@ public class MyController {
 				.uid(request.getUid())
 				.operationUid(request.getOperationUid())
 				.systemTime(DateTimeUtil.getCustomFormat().format(new Date()))
+				.positions(request.getPosition())
+				.salary(request.getSalary())
+				.bonus(request.getBonus())
+				.workDays(request.getWorkDays())
+				.annualBonus(annualBonusService.calculate(request.getPosition(), request.getSalary(), request.getBonus(), request.getWorkDays()))
 				.code(Codes.SUCCESS)
 				.errorCode(ErrorCodes.EMPTY)
 				.errorMessage(ErrorMessages.EMPTY)
@@ -77,7 +71,7 @@ public class MyController {
 			response.setErrorMessage(ErrorMessages.UNSUPPORTED);
 			log.info("response (unsupported exception): {}", response);
 			return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-		}catch (Exception e) {
+		} catch (Exception e) {
 			log.error(e.toString());
 			response.setCode(Codes.FAILED);
 			response.setErrorCode(ErrorCodes.UNKNOWN_EXCEPTION);
@@ -86,7 +80,7 @@ public class MyController {
 			return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
-		response = modifyResponseService.modify(response);
+		response = modifySystemTimeResponseService.modify(response);
 		modifySourceRequestService.modify(request);
 		modifySystemNameRequestService.modify(request);
 		log.info("response (modified): {}", response);
